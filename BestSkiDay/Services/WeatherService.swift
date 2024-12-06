@@ -38,7 +38,7 @@ class WeatherService: ObservableObject {
                               zip(response.daily.temperature2mMax,
                                   zip(response.daily.snowfallSum,
                                       response.daily.sunshineDuration))).map { dateString, values in
-                let (temp, (snowfall, sunshine)) = values
+                let (_, (snowfall, sunshine)) = values
                 let date = dateFormatter.date(from: dateString) ?? Date()
                 
                 // Get average snow depth for the day from hourly data

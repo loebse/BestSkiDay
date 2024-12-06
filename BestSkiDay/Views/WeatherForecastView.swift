@@ -62,14 +62,9 @@ struct WeatherForecastView: View {
         }) {
             LocationPickerView(currentLocation: currentLocation) { newLocation in
                 Task {
-                    do {
-                        currentLocation = newLocation
-                        showingLocationPicker = false
-                        await weatherService.fetchWeatherForecast(for: newLocation)
-                    } catch {
-                        // Handle error appropriately
-                        weatherService.error = error
-                    }
+                    currentLocation = newLocation
+                    showingLocationPicker = false
+                    await weatherService.fetchWeatherForecast(for: newLocation)
                 }
             }
         }

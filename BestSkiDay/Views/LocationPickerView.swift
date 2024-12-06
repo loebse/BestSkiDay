@@ -81,10 +81,17 @@ struct LocationPickerView: View {
                         }
                     } else {
                         LocationButton(.currentLocation) {
-                            locationManager.requestLocation()
-                            if let location = locationManager.currentLocation {
-                                onLocationSelected(location)
-                                dismiss()
+                            Task {
+                                locationManager.requestLocation()
+                                // Try for 5 seconds (10 attempts * 0.5s)
+                                for _ in 0..<10 {
+                                    if let location = locationManager.currentLocation {
+                                        onLocationSelected(location)
+                                        dismiss()
+                                        break
+                                    }
+                                    try? await Task.sleep(nanoseconds: 500_000_000)
+                                }
                             }
                         }
                         .symbolVariant(.fill)
@@ -107,10 +114,10 @@ struct LocationPickerView: View {
                 }
             }
         }
-        .onChange(of: searchText) { query in
+        .onChange(of: searchText) { oldValue, newValue in
             Task {
                 try? await Task.sleep(nanoseconds: 500_000_000) // Debounce search
-                await geocodingService.searchLocations(query: query)
+                await geocodingService.searchLocations(query: newValue)
             }
         }
     }
