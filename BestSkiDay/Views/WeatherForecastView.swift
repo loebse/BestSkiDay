@@ -7,6 +7,7 @@ struct WeatherForecastView: View {
     @StateObject private var weatherService = WeatherService()
     @State private var showingLocationPicker = false
     @State private var currentLocation: Location
+    @State private var isLocationPickerLoading = false
     
     init(location: Location) {
         self.location = location
@@ -17,23 +18,12 @@ struct WeatherForecastView: View {
         Group {
             if weatherService.isLoading {
                 ProgressView("Loading forecast...")
+                    .transition(.opacity)
             } else if let error = weatherService.error {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.yellow)
-                    Text("Failed to load forecast")
-                        .font(.headline)
-                    Text(error.localizedDescription)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button("Retry") {
-                        Task {
-                            await weatherService.fetchWeatherForecast(for: currentLocation)
-                        }
-                    }
+                ErrorView(error: error) {
+                    await weatherService.fetchWeatherForecast(for: currentLocation)
                 }
-                .padding()
+                .transition(.opacity)
             } else {
                 VStack {
                     HStack {
@@ -41,27 +31,46 @@ struct WeatherForecastView: View {
                             .font(.headline)
                         Spacer()
                         LocationButton(.currentLocation) {
+                            isLocationPickerLoading = true
                             showingLocationPicker = true
                         }
                         .labelStyle(.iconOnly)
                         .cornerRadius(6)
                         .frame(width: 32, height: 32)
+                        .disabled(isLocationPickerLoading)
+                        .opacity(isLocationPickerLoading ? 0.5 : 1)
                     }
                     .padding(.horizontal)
                     
                     List(weatherService.forecast) { day in
                         ForecastRow(forecast: day)
                     }
+                    .refreshable {
+                        await weatherService.fetchWeatherForecast(for: currentLocation)
+                    }
                 }
+                .transition(.opacity)
             }
         }
+        .animation(.default, value: weatherService.isLoading)
+        .animation(.default, value: weatherService.error != nil)
         .task(id: currentLocation.id) {
             await weatherService.fetchWeatherForecast(for: currentLocation)
         }
-        .sheet(isPresented: $showingLocationPicker) {
+        .sheet(isPresented: $showingLocationPicker, onDismiss: {
+            isLocationPickerLoading = false
+        }) {
             LocationPickerView(currentLocation: currentLocation) { newLocation in
-                currentLocation = newLocation
-                showingLocationPicker = false
+                Task {
+                    do {
+                        currentLocation = newLocation
+                        showingLocationPicker = false
+                        await weatherService.fetchWeatherForecast(for: newLocation)
+                    } catch {
+                        // Handle error appropriately
+                        weatherService.error = error
+                    }
+                }
             }
         }
     }
@@ -92,6 +101,7 @@ struct CircularScoreView: View {
                 .font(.system(.subheadline, design: .rounded))
                 .bold()
                 .foregroundColor(color)
+                .accessibilityLabel("Score: \(Int(score)) percent")
         }
         .frame(width: 44, height: 44)
     }
@@ -120,7 +130,9 @@ struct ForecastRow: View {
             HStack {
                 VStack(alignment: .leading) {
                     Label("\(Int(forecast.snowfall))cm", systemImage: "snow")
+                        .accessibilityLabel("Snowfall: \(Int(forecast.snowfall)) centimeters")
                     Label("\(Int(forecast.snowHeight))cm", systemImage: "mountain.2")
+                        .accessibilityLabel("Snow height: \(Int(forecast.snowHeight)) centimeters")
                 }
                 
                 Spacer()
@@ -136,6 +148,30 @@ struct ForecastRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)
+    }
+}
+
+struct ErrorView: View {
+    let error: Error
+    let retryAction: () async -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundColor(.yellow)
+            Text("Failed to load forecast")
+                .font(.headline)
+            Text(error.localizedDescription)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Button("Retry") {
+                Task {
+                    await retryAction()
+                }
+            }
+        }
+        .padding()
     }
 }
 
