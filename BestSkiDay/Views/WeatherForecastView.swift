@@ -111,7 +111,7 @@ struct ForecastRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(forecast.date.formatted(date: .abbreviated, time: .omitted))
+                Text(forecast.date.formatted(date: .complete, time: .omitted))
                     .font(.headline)
                 Spacer()
                 CircularScoreView(score: forecast.score, color: scoreColor)
@@ -126,7 +126,10 @@ struct ForecastRow: View {
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    Label("\(Int(forecast.temperature))°C", systemImage: "thermometer")
+                    HStack(spacing: 12) {
+                        Label("\(Int(forecast.temperatureMin))°", systemImage: "thermometer.low")
+                        Label("\(Int(forecast.temperatureMax))°", systemImage: "thermometer.high")
+                    }
                     Label("\(Int(forecast.sunshine))%", systemImage: "sun.max")
                 }
             }
