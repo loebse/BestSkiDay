@@ -28,6 +28,7 @@ struct LocationPickerView: View {
     @StateObject private var geocodingService = GeocodingService()
     @State private var searchText = ""
     @State private var searchProgress = 0.0
+    @StateObject private var favoritesManager = FavoriteLocationsManager()
     
     var body: some View {
         NavigationView {
@@ -67,42 +68,88 @@ struct LocationPickerView: View {
                 List {
                     if !searchText.isEmpty {
                         ForEach(geocodingService.searchResults) { location in
-                            Button {
+                            LocationRow(location: location) {
                                 onLocationSelected(location)
                                 dismiss()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "mappin.circle.fill")
-                                        .foregroundColor(.accentColor)
-                                    Text(location.name)
-                                        .foregroundColor(.primary)
+                            }
+                            .swipeActions {
+                                if favoritesManager.favorites.contains(where: { $0.id == location.id }) {
+                                    Button(role: .destructive) {
+                                        favoritesManager.removeFavorite(location)
+                                    } label: {
+                                        Label("Remove from Favorites", systemImage: "star.slash")
+                                    }
+                                } else {
+                                    Button {
+                                        favoritesManager.addFavorite(location)
+                                    } label: {
+                                        Label("Add to Favorites", systemImage: "star")
+                                    }
+                                    .tint(.yellow)
                                 }
                             }
                         }
                     } else {
-                        LocationButton(.currentLocation) {
-                            Task {
-                                locationManager.requestLocation()
-                                // Try for 5 seconds (10 attempts * 0.5s)
-                                for _ in 0..<10 {
-                                    if let location = locationManager.currentLocation {
+                        Section {
+                            LocationButton(.currentLocation) {
+                                Task {
+                                    locationManager.requestLocation()
+                                    // Try for 5 seconds (10 attempts * 0.5s)
+                                    for _ in 0..<10 {
+                                        if let location = locationManager.currentLocation {
+                                            onLocationSelected(location)
+                                            dismiss()
+                                            break
+                                        }
+                                        try? await Task.sleep(nanoseconds: 500_000_000)
+                                    }
+                                }
+                            }
+                            .symbolVariant(.fill)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .frame(height: 44)
+                        }
+                        
+                        Section {
+                            LocationRow(location: currentLocation) {
+                                onLocationSelected(currentLocation)
+                                dismiss()
+                            }
+                            .swipeActions {
+                                if !favoritesManager.favorites.contains(where: { $0.id == currentLocation.id }) {
+                                    Button {
+                                        favoritesManager.addFavorite(currentLocation)
+                                    } label: {
+                                        Label("Add to Favorites", systemImage: "star")
+                                    }
+                                    .tint(.yellow)
+                                }
+                            }
+                        } header: {
+                            Text("Current Selection")
+                        }
+                        
+                        if !favoritesManager.favorites.isEmpty {
+                            Section("Favorites") {
+                                ForEach(favoritesManager.favorites) { location in
+                                    LocationRow(location: location) {
                                         onLocationSelected(location)
                                         dismiss()
-                                        break
                                     }
-                                    try? await Task.sleep(nanoseconds: 500_000_000)
+                                    .swipeActions {
+                                        Button(role: .destructive) {
+                                            favoritesManager.removeFavorite(location)
+                                        } label: {
+                                            Label("Remove from Favorites", systemImage: "star.slash")
+                                        }
+                                    }
                                 }
                             }
                         }
-                        .symbolVariant(.fill)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .frame(maxWidth: .infinity)
-                        .listRowInsets(EdgeInsets())
-                        .padding()
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
             }
             .navigationTitle("Choose Location")
             .navigationBarTitleDisplayMode(.inline)
@@ -112,6 +159,19 @@ struct LocationPickerView: View {
                         dismiss()
                     }
                 }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        if favoritesManager.favorites.contains(where: { $0.id == currentLocation.id }) {
+                            favoritesManager.removeFavorite(currentLocation)
+                        } else {
+                            favoritesManager.addFavorite(currentLocation)
+                        }
+                    } label: {
+                        Image(systemName: favoritesManager.favorites.contains(where: { $0.id == currentLocation.id }) ? "star.fill" : "star")
+                    }
+                    .foregroundColor(.yellow)
+                }
             }
         }
         .onChange(of: searchText) { oldValue, newValue in
@@ -120,5 +180,25 @@ struct LocationPickerView: View {
                 await geocodingService.searchLocations(query: newValue)
             }
         }
+    }
+}
+
+struct LocationRow: View {
+    let location: Location
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .frame(width: 24, height: 24)
+                Text(location.name)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .frame(minHeight: 44)
     }
 }
