@@ -62,6 +62,10 @@ Best Ski Day requires location access to provide accurate weather forecasts. You
 
 Weather data is provided by the Open-Meteo API, offering reliable and up-to-date forecasts for locations worldwide.
 
+## Future Development
+
+Check out our [Roadmap](ROADMAP.md) to see what features and improvements are planned for future releases. The roadmap includes short-term, medium-term, and long-term goals for enhancing the app's functionality and user experience.
+
 ## Feedback
 
 Found a bug or have a feature request? Please open an issue in this repository.
