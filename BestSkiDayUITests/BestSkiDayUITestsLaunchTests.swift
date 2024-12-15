@@ -17,14 +17,23 @@ final class BestSkiDayUITestsLaunchTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    @MainActor
     func testLaunch() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Insert steps here to perform after app launch but before taking a screenshot,
-        // such as logging into a test account or navigating somewhere in the app
+        // Verify initial state
+        XCTAssertTrue(app.navigationBars.firstMatch.exists)
+        
+        // Test loading state
+        let loadingIndicator = app.activityIndicators["Loading forecast..."]
+        XCTAssertTrue(loadingIndicator.exists)
+        
+        // Wait for content to load
+        let predicate = NSPredicate(format: "exists == false")
+        expectation(for: predicate, evaluatedWith: loadingIndicator, handler: nil)
+        waitForExpectations(timeout: 5)
 
+        // Take launch screenshot
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"
         attachment.lifetime = .keepAlways

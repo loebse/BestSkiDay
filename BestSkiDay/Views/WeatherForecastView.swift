@@ -105,7 +105,7 @@ struct CircularScoreView: View {
 struct ForecastRow: View {
     let forecast: WeatherForecast
     
-    private var scoreColor: Color {
+    var scoreColor: Color {
         switch forecast.score {
         case 80...: return .green
         case 60...: return .yellow
@@ -120,6 +120,7 @@ struct ForecastRow: View {
                     .font(.headline)
                 Spacer()
                 CircularScoreView(score: forecast.score, color: scoreColor)
+                    .accessibilityIdentifier("forecast-score")
             }
             
             HStack {
