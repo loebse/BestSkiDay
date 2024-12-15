@@ -1,6 +1,6 @@
 # Best Ski Day
 
-![appstoreicon](BestSkiDay/Assets.xcassets/AppIcon.appiconset/appstore%201.png)
+![appstoreicon](BestSkiDay/Assets.xcassets/AppIcon.appiconset/AppIcon~ios-marketing%201.png)
 
 Best Ski Day is an iOS app that helps winter sports enthusiasts find the perfect day for skiing within the next week. By analyzing various weather conditions, it calculates a "ski score" for each day to help you plan your perfect ski trip.
 
